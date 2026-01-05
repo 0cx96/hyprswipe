@@ -7,13 +7,22 @@
 
 inline HANDLE PHANDLE = nullptr;
 
+/*
+Workspace Grid Mapping (1-indexed rows/cols):
+Column:  1  2  3
+Row 1:   1  2  3
+Row 2:   4  5  6
+Row 3:   7  8  9
+*/
+
 // State to track current row and column (1-indexed)
 int currentRow = 2;
 int currentCol = 2;
 
 // Function to generate the workspace name from coordinates
 std::string getWorkspaceName(int r, int c) {
-    return std::to_string(r) + "-" + std::to_string(c);
+    int ws = (r - 1) * 3 + c;
+    return std::to_string(ws);
 }
 
 // Synchronize plugin state with the actual current workspace
@@ -23,12 +32,11 @@ void syncState() {
 
     std::string name = pMonitor->m_activeWorkspace->m_name;
     
-    // Fast path: check if name matches "R-C" format (e.g., "1-1")
-    if (name.length() == 3 && name[1] == '-' && 
-        name[0] >= '1' && name[0] <= '3' && 
-        name[2] >= '1' && name[2] <= '3') {
-        currentRow = name[0] - '0';
-        currentCol = name[2] - '0';
+    // Check if name is a single digit 1-9
+    if (name.length() == 1 && name[0] >= '1' && name[0] <= '9') {
+        int ws = name[0] - '0';
+        currentRow = (ws - 1) / 3 + 1;
+        currentCol = (ws - 1) % 3 + 1;
     }
 }
 
@@ -39,48 +47,51 @@ void switchToWorkspace(std::string name) {
 
 // Dispatchers
 SDispatchResult handleRight(std::string arg) {
-    HyprlandAPI::addNotification(PHANDLE, "[hyprswipe] Right triggered", CHyprColor{0.2, 0.8, 0.2, 1.0}, 2000);
     syncState();
     if (currentCol < 3) {
         currentCol++;
-        switchToWorkspace(getWorkspaceName(currentRow, currentCol));
+        std::string name = getWorkspaceName(currentRow, currentCol);
+        HyprlandAPI::addNotification(PHANDLE, "[HyprSwipe] Swiping to " + name, CHyprColor{0.2, 0.8, 0.2, 1.0}, 2000);
+        switchToWorkspace(name);
     }
     return {};
 }
 
 SDispatchResult handleLeft(std::string arg) {
-    HyprlandAPI::addNotification(PHANDLE, "[hyprswipe] Left triggered", CHyprColor{0.2, 0.8, 0.2, 1.0}, 2000);
     syncState();
     if (currentCol > 1) {
         currentCol--;
-        switchToWorkspace(getWorkspaceName(currentRow, currentCol));
+        std::string name = getWorkspaceName(currentRow, currentCol);
+        HyprlandAPI::addNotification(PHANDLE, "[HyprSwipe] Swiping to " + name, CHyprColor{0.2, 0.8, 0.2, 1.0}, 2000);
+        switchToWorkspace(name);
     }
     return {};
 }
 
 SDispatchResult handleDown(std::string arg) {
-    HyprlandAPI::addNotification(PHANDLE, "[hyprswipe] Down triggered", CHyprColor{0.8, 0.2, 0.2, 1.0}, 2000);
     syncState();
     if (currentRow < 3) {
         currentRow++;
-        switchToWorkspace(getWorkspaceName(currentRow, currentCol));
+        std::string name = getWorkspaceName(currentRow, currentCol);
+        HyprlandAPI::addNotification(PHANDLE, "[HyprSwipe] Swiping to " + name, CHyprColor{0.2, 0.8, 0.2, 1.0}, 2000);
+        switchToWorkspace(name);
     }
     return {};
 }
 
 SDispatchResult handleUp(std::string arg) {
-    HyprlandAPI::addNotification(PHANDLE, "[hyprswipe] Up triggered", CHyprColor{0.8, 0.2, 0.2, 1.0}, 2000);
     syncState();
     if (currentRow > 1) {
         currentRow--;
-        switchToWorkspace(getWorkspaceName(currentRow, currentCol));
+        std::string name = getWorkspaceName(currentRow, currentCol);
+        HyprlandAPI::addNotification(PHANDLE, "[HyprSwipe] Swiping to " + name, CHyprColor{0.2, 0.8, 0.2, 1.0}, 2000);
+        switchToWorkspace(name);
     }
     return {};
 }
 
 SDispatchResult handleDiagonal(std::string arg) {
-    HyprlandAPI::addNotification(PHANDLE, "[hyprswipe] Diagonal triggered", CHyprColor{0.2, 0.2, 0.8, 1.0}, 2000);
-    // Toggle special workspace
+    HyprlandAPI::addNotification(PHANDLE, "[HyprSwipe] Toggling Special", CHyprColor{0.2, 0.2, 0.8, 1.0}, 2000);
     g_pKeybindManager->m_dispatchers["togglespecialworkspace"]("");
     return {};
 }
@@ -108,7 +119,7 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     HyprlandAPI::addDispatcherV2(PHANDLE, "hyprswipe:down", handleDown);
     HyprlandAPI::addDispatcherV2(PHANDLE, "hyprswipe:diagonal", handleDiagonal);
 
-    HyprlandAPI::addNotification(PHANDLE, "[HyprSwipe] Plugin loaded! Initializing...", CHyprColor{0.2, 1.0, 0.2, 1.0}, 5000);
+    HyprlandAPI::addNotification(PHANDLE, "[HyprSwipe] Plugin loaded! (Workspace 1-9)", CHyprColor{0.2, 1.0, 0.2, 1.0}, 5000);
 
     return {"HyprSwipe", "2D Workspace Grid Swipe Plugin", "Antigravity", "0.1.0"};
 }
