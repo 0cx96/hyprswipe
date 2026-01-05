@@ -19,7 +19,7 @@ A Hyprland plugin that implements a 3x3 workspace grid with gesture navigation.
     hyprland.url = "git+https://github.com/hyprwm/Hyprland?submodules=1";
     
     hyprswipe = {
-      url = "github:yourusername/hyprswipe";
+      url = "github:0cx96/hyprswipe";
       inputs.hyprland.follows = "hyprland";
     };
   };

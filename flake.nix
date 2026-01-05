@@ -57,7 +57,7 @@
 
             meta = with pkgs.lib; {
               description = "A 3x3 workspace grid plugin for Hyprland";
-              homepage = "https://github.com/yourusername/hyprswipe";
+              homepage = "https://github.com/0cx96/hyprswipe";
               license = licenses.mit;
               platforms = platforms.linux;
               maintainers = [ ];
