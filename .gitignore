@@ -1,0 +1,25 @@
+# Build outputs
+build/
+result
+result-*
+
+# Nix
+.direnv/
+.envrc
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Test files
+test-*.sh
+*_debug.txt
+*_output.txt
+
+# Temporary files
+*.log
+*.tmp
