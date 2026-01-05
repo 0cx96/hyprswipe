@@ -3,6 +3,7 @@
 #include <hyprland/src/helpers/Color.hpp>
 #include <hyprland/src/config/ConfigManager.hpp>
 #include <hyprland/src/managers/KeybindManager.hpp>
+#include <hyprland/src/debug/Log.hpp>
 #include <string>
 
 inline HANDLE PHANDLE = nullptr;
@@ -22,22 +23,29 @@ void syncState() {
     if (!pMonitor || !pMonitor->m_activeWorkspace) return;
 
     std::string name = pMonitor->m_activeWorkspace->m_name;
+    Debug::log(LOG, "[hyprswipe] syncState: current workspace name: {}", name);
+
     // Fast path: check if name matches "R-C" format (e.g., "1-1")
     if (name.length() == 3 && name[1] == '-' && 
         name[0] >= '1' && name[0] <= '3' && 
         name[2] >= '1' && name[2] <= '3') {
         currentRow = name[0] - '0';
         currentCol = name[2] - '0';
+        Debug::log(LOG, "[hyprswipe] syncState: updated state to {}-{}", currentRow, currentCol);
+    } else {
+        Debug::log(LOG, "[hyprswipe] syncState: workspace name format mismatch, keeping {}-{}", currentRow, currentCol);
     }
 }
 
 // Function to switch to a workspace
 void switchToWorkspace(std::string name) {
+    Debug::log(LOG, "[hyprswipe] switchToWorkspace: switching to {}", name);
     g_pKeybindManager->m_dispatchers["workspace"](name);
 }
 
 // Dispatchers
 SDispatchResult handleRight(std::string arg) {
+    Debug::log(LOG, "[hyprswipe] handleRight triggered");
     syncState();
     if (currentCol < 3) {
         currentCol++;
@@ -47,6 +55,7 @@ SDispatchResult handleRight(std::string arg) {
 }
 
 SDispatchResult handleLeft(std::string arg) {
+    Debug::log(LOG, "[hyprswipe] handleLeft triggered");
     syncState();
     if (currentCol > 1) {
         currentCol--;
@@ -56,6 +65,7 @@ SDispatchResult handleLeft(std::string arg) {
 }
 
 SDispatchResult handleDown(std::string arg) {
+    Debug::log(LOG, "[hyprswipe] handleDown triggered");
     syncState();
     if (currentRow < 3) {
         currentRow++;
@@ -65,6 +75,7 @@ SDispatchResult handleDown(std::string arg) {
 }
 
 SDispatchResult handleUp(std::string arg) {
+    Debug::log(LOG, "[hyprswipe] handleUp triggered");
     syncState();
     if (currentRow > 1) {
         currentRow--;
@@ -74,6 +85,7 @@ SDispatchResult handleUp(std::string arg) {
 }
 
 SDispatchResult handleDiagonal(std::string arg) {
+    Debug::log(LOG, "[hyprswipe] handleDiagonal triggered (toggling special)");
     // Toggle special workspace
     g_pKeybindManager->m_dispatchers["togglespecialworkspace"]("");
     return {};
@@ -102,7 +114,7 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     HyprlandAPI::addDispatcherV2(PHANDLE, "hyprswipe:down", handleDown);
     HyprlandAPI::addDispatcherV2(PHANDLE, "hyprswipe:diagonal", handleDiagonal);
 
-    HyprlandAPI::addNotification(PHANDLE, "[HyprSwipe] Plugin loaded! Initializing...", CHyprColor{0.2, 1.0, 0.2, 1.0}, 5000);
+    HyprlandAPI::addNotification(PHANDLE, "[HyprSwipe] Plugin loaded with debug logging!", CHyprColor{0.2, 1.0, 0.2, 1.0}, 5000);
 
     return {"HyprSwipe", "2D Workspace Grid Swipe Plugin", "Antigravity", "0.1.0"};
 }
