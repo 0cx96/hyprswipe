@@ -3,9 +3,15 @@
 #include <hyprland/src/helpers/Color.hpp>
 #include <hyprland/src/config/ConfigManager.hpp>
 #include <hyprland/src/managers/KeybindManager.hpp>
+#include <hyprland/src/devices/IPointer.hpp>
+#include <hyprutils/math/Vector2D.hpp>
 #include <string>
+#include <any>
+
+using namespace Hyprutils::Math;
 
 inline HANDLE PHANDLE = nullptr;
+Vector2D g_vSwipeDelta = {0, 0};
 
 /*
 Workspace Grid Mapping (1-indexed rows/cols):
@@ -51,7 +57,6 @@ SDispatchResult handleRight(std::string arg) {
     if (currentCol < 3) {
         currentCol++;
         std::string name = getWorkspaceName(currentRow, currentCol);
-        HyprlandAPI::addNotification(PHANDLE, "[HyprSwipe] Swiping to " + name, CHyprColor{0.2, 0.8, 0.2, 1.0}, 2000);
         switchToWorkspace(name);
     }
     return {};
@@ -62,7 +67,6 @@ SDispatchResult handleLeft(std::string arg) {
     if (currentCol > 1) {
         currentCol--;
         std::string name = getWorkspaceName(currentRow, currentCol);
-        HyprlandAPI::addNotification(PHANDLE, "[HyprSwipe] Swiping to " + name, CHyprColor{0.2, 0.8, 0.2, 1.0}, 2000);
         switchToWorkspace(name);
     }
     return {};
@@ -73,7 +77,6 @@ SDispatchResult handleDown(std::string arg) {
     if (currentRow < 3) {
         currentRow++;
         std::string name = getWorkspaceName(currentRow, currentCol);
-        HyprlandAPI::addNotification(PHANDLE, "[HyprSwipe] Swiping to " + name, CHyprColor{0.2, 0.8, 0.2, 1.0}, 2000);
         switchToWorkspace(name);
     }
     return {};
@@ -84,16 +87,43 @@ SDispatchResult handleUp(std::string arg) {
     if (currentRow > 1) {
         currentRow--;
         std::string name = getWorkspaceName(currentRow, currentCol);
-        HyprlandAPI::addNotification(PHANDLE, "[HyprSwipe] Swiping to " + name, CHyprColor{0.2, 0.8, 0.2, 1.0}, 2000);
         switchToWorkspace(name);
     }
     return {};
 }
 
 SDispatchResult handleDiagonal(std::string arg) {
-    HyprlandAPI::addNotification(PHANDLE, "[HyprSwipe] Toggling Special", CHyprColor{0.2, 0.2, 0.8, 1.0}, 2000);
     g_pKeybindManager->m_dispatchers["togglespecialworkspace"]("");
     return {};
+}
+
+// Swipe Callbacks
+void onSwipeBegin(void* thisptr, SCallbackInfo& info, std::any args) {
+    g_vSwipeDelta = {0, 0};
+}
+
+void onSwipeUpdate(void* thisptr, SCallbackInfo& info, std::any args) {
+    auto e = std::any_cast<IPointer::SSwipeUpdateEvent>(args);
+    g_vSwipeDelta += e.delta;
+}
+
+void onSwipeEnd(void* thisptr, SCallbackInfo& info, std::any args) {
+    const float threshold = 200.0f; 
+    
+    if (std::abs(g_vSwipeDelta.x) > std::abs(g_vSwipeDelta.y)) {
+        if (g_vSwipeDelta.x < -threshold) {
+            handleRight("");
+        } else if (g_vSwipeDelta.x > threshold) {
+            handleLeft("");
+        }
+    } else {
+        if (g_vSwipeDelta.y < -threshold) {
+            handleDown("");
+        } else if (g_vSwipeDelta.y > threshold) {
+            handleUp("");
+        }
+    }
+    g_vSwipeDelta = {0, 0};
 }
 
 // Versioning and Init
@@ -119,7 +149,12 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     HyprlandAPI::addDispatcherV2(PHANDLE, "hyprswipe:down", handleDown);
     HyprlandAPI::addDispatcherV2(PHANDLE, "hyprswipe:diagonal", handleDiagonal);
 
-    HyprlandAPI::addNotification(PHANDLE, "[HyprSwipe] Plugin loaded! (Workspace 1-9)", CHyprColor{0.2, 1.0, 0.2, 1.0}, 5000);
+    // Register callbacks
+    HyprlandAPI::registerCallbackDynamic(PHANDLE, "swipeBegin", onSwipeBegin);
+    HyprlandAPI::registerCallbackDynamic(PHANDLE, "swipeUpdate", onSwipeUpdate);
+    HyprlandAPI::registerCallbackDynamic(PHANDLE, "swipeEnd", onSwipeEnd);
+
+    HyprlandAPI::addNotification(PHANDLE, "[HyprSwipe] Plugin loaded!", CHyprColor{0.2, 1.0, 0.2, 1.0}, 5000);
 
     return {"HyprSwipe", "2D Workspace Grid Swipe Plugin", "Antigravity", "0.1.0"};
 }
